@@ -8,7 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { Leaf, Search, BookOpen, TrendingUp } from "lucide-react";
+import { Leaf, Search, BookOpen, TrendingUp, Users } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { DiaryProvider } from "@/lib/diary-store";
 
@@ -129,28 +129,68 @@ const NAV_ITEMS = [
   { to: "/", label: "Registrar", icon: Search },
   { to: "/diario", label: "Diario", icon: BookOpen },
   { to: "/progreso", label: "Progreso", icon: TrendingUp },
+  { to: "/comunidad", label: "Comunidad", icon: Users },
 ] as const;
 
 function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="mx-auto grid max-w-md grid-cols-3">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:hidden">
+      <div className="mx-auto grid max-w-md grid-cols-4">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
             activeOptions={{ exact: true }}
-            className="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold"
+            className="flex min-w-0 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold"
             activeProps={{ className: "text-primary" }}
             inactiveProps={{ className: "text-muted-foreground" }}
           >
-            <Icon className="h-5 w-5" />
-            {label}
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="truncate">{label}</span>
           </Link>
         ))}
       </div>
       <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
+  );
+}
+
+function Brand({ className = "" }: { className?: string }) {
+  return (
+    <span className={`flex min-w-0 items-center gap-2 ${className}`}>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+        <Leaf className="h-4.5 w-4.5" />
+      </span>
+      <span className="min-w-0 truncate text-lg font-extrabold tracking-tight text-foreground">
+        NUTRI<span className="text-primary">USM</span>
+      </span>
+    </span>
+  );
+}
+
+function SideNav() {
+  return (
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-card/60 px-4 py-5 lg:flex xl:w-64">
+      <Brand />
+      <nav className="mt-8 flex flex-col gap-1">
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            activeOptions={{ exact: true }}
+            className="flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors"
+            activeProps={{ className: "bg-accent text-primary" }}
+            inactiveProps={{ className: "text-muted-foreground hover:bg-muted" }}
+          >
+            <Icon className="h-4.5 w-4.5 shrink-0" />
+            <span className="truncate">{label}</span>
+          </Link>
+        ))}
+      </nav>
+      <p className="mt-auto text-[11px] leading-relaxed text-muted-foreground">
+        Prototipo de registro de alimentación para estudiantes.
+      </p>
+    </aside>
   );
 }
 
@@ -160,20 +200,18 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <DiaryProvider>
-        <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-background shadow-xl shadow-black/5">
-          <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-            <div className="flex items-center gap-2 px-4 py-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-                <Leaf className="h-4.5 w-4.5" />
-              </span>
-              <span className="min-w-0 truncate text-lg font-extrabold tracking-tight text-foreground">
-                NUTRI<span className="text-primary">USM</span>
-              </span>
-            </div>
-          </header>
-          <main className="flex-1 pb-24">
-            <Outlet />
-          </main>
+        <div className="flex min-h-screen w-full bg-background">
+          <SideNav />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur lg:hidden">
+              <div className="mx-auto w-full max-w-md px-4 py-3">
+                <Brand />
+              </div>
+            </header>
+            <main className="mx-auto w-full max-w-md flex-1 pb-24 lg:max-w-6xl lg:px-8 lg:py-6 lg:pb-10">
+              <Outlet />
+            </main>
+          </div>
           <BottomNav />
         </div>
         <Toaster position="top-center" richColors />
@@ -181,3 +219,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
