@@ -99,6 +99,55 @@ export function totalsFor(day: DayMeals): Totals {
   return t;
 }
 
+export interface SavedMeal {
+  id: string;
+  name: string;
+  items: { foodId: string; servings: number }[];
+}
+
+export interface UserPost {
+  id: string;
+  author: string;
+  career: string;
+  initials: string;
+  timeAgo: string;
+  text: string;
+  kind: "tip" | "registro" | "receta";
+  attachment?: { title: string; detail: string };
+}
+
+const SEED_SAVED_MEALS: SavedMeal[] = [
+  {
+    id: "sm-desayuno-rapido",
+    name: "Desayuno rápido",
+    items: [
+      { foodId: "avena", servings: 1 },
+      { foodId: "leche", servings: 1 },
+      { foodId: "platano", servings: 1 },
+    ],
+  },
+  {
+    id: "sm-almuerzo-casino",
+    name: "Almuerzo del casino",
+    items: [
+      { foodId: "pollo", servings: 1 },
+      { foodId: "arroz", servings: 1 },
+      { foodId: "lechuga", servings: 1 },
+    ],
+  },
+  {
+    id: "sm-once-clasica",
+    name: "Once clásica",
+    items: [
+      { foodId: "marraqueta", servings: 1 },
+      { foodId: "palta", servings: 1 },
+      { foodId: "jamon", servings: 1 },
+    ],
+  },
+];
+
+const SEED_FAVORITES = ["huevo", "platano", "pollo", "yogur"];
+
 interface DiaryContextValue {
   diary: Diary;
   goals: Goals;
@@ -106,9 +155,27 @@ interface DiaryContextValue {
   addEntries: (meal: Meal, items: { foodId: string; servings: number }[], dateKey?: string) => void;
   removeEntry: (dateKey: string, meal: Meal, entryId: string) => void;
   setGoals: (g: Goals) => void;
+  favorites: string[];
+  toggleFavorite: (foodId: string) => void;
+  isFavorite: (foodId: string) => boolean;
+  savedMeals: SavedMeal[];
+  saveMeal: (name: string, items: { foodId: string; servings: number }[]) => void;
+  removeSavedMeal: (id: string) => void;
+  posts: UserPost[];
+  addPost: (post: Omit<UserPost, "id" | "timeAgo">) => void;
 }
 
 const DiaryContext = createContext<DiaryContextValue | null>(null);
+
+function loadJSON<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw) as T;
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
 
 function loadDiary(): Diary {
   try {
@@ -122,15 +189,25 @@ function loadDiary(): Diary {
 
 export function DiaryProvider({ children }: { children: ReactNode }) {
   const [diary, setDiary] = useState<Diary>(() => loadDiary());
-  const [goals, setGoals] = useState<Goals>(() => {
+  const [goals, setGoals] = useState<Goals>(() => loadJSON(STORAGE_KEY + "-goals", DEFAULT_GOALS));
+  const [favorites, setFavorites] = useState<string[]>(() =>
+    loadJSON(STORAGE_KEY + "-favs", SEED_FAVORITES),
+  );
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>(() =>
+    loadJSON(STORAGE_KEY + "-saved", SEED_SAVED_MEALS),
+  );
+  const [posts, setPosts] = useState<UserPost[]>(() => loadJSON<UserPost[]>(STORAGE_KEY + "-posts", []));
+
+  useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY + "-goals");
-      if (raw) return JSON.parse(raw) as Goals;
+      localStorage.setItem(STORAGE_KEY + "-favs", JSON.stringify(favorites));
+      localStorage.setItem(STORAGE_KEY + "-saved", JSON.stringify(savedMeals));
+      localStorage.setItem(STORAGE_KEY + "-posts", JSON.stringify(posts));
     } catch {
       /* ignore */
     }
-    return DEFAULT_GOALS;
-  });
+  }, [favorites, savedMeals, posts]);
+
 
   useEffect(() => {
     try {
