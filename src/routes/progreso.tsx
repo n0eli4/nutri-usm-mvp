@@ -77,10 +77,10 @@ function ProgresoPage() {
   }).reverse();
 
   return (
-    <div className="px-4 pt-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight">Tu progreso</h1>
+    <div className="px-4 pt-4 lg:px-0 lg:pt-0">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-extrabold tracking-tight lg:text-2xl">Tu progreso</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">Metas diarias vs. consumo de hoy.</p>
         </div>
         <button
@@ -94,7 +94,7 @@ function ProgresoPage() {
         </button>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {MACRO_META.map((m) => (
           <MacroBar
             key={m.key}
@@ -139,11 +139,11 @@ function ProgresoPage() {
       {/* Editor de metas */}
       {editing && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
           onClick={() => setEditing(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-8"
+            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-base font-extrabold">Metas diarias</h2>
