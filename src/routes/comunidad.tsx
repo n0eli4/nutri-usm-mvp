@@ -117,7 +117,7 @@ function ComunidadPage() {
       initials: "TÚ",
       kind: attach ? attach.kind : "tip",
       text: text.trim(),
-      attachment: attach ? { title: attach.title, detail: attach.detail } : undefined,
+      ...(attach ? { attachment: { title: attach.title, detail: attach.detail } } : {}),
     });
     toast.success("¡Publicado en la comunidad!");
     setText("");
