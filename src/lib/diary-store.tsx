@@ -250,9 +250,29 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
           };
         }),
       setGoals,
+      favorites,
+      isFavorite: (foodId) => favorites.includes(foodId),
+      toggleFavorite: (foodId) =>
+        setFavorites((prev) =>
+          prev.includes(foodId) ? prev.filter((f) => f !== foodId) : [...prev, foodId],
+        ),
+      savedMeals,
+      saveMeal: (name, items) =>
+        setSavedMeals((prev) => [
+          { id: `sm-${Date.now().toString(36)}`, name, items },
+          ...prev,
+        ]),
+      removeSavedMeal: (id) => setSavedMeals((prev) => prev.filter((m) => m.id !== id)),
+      posts,
+      addPost: (post) =>
+        setPosts((prev) => [
+          { ...post, id: `up-${Date.now().toString(36)}`, timeAgo: "recién" },
+          ...prev,
+        ]),
     }),
-    [diary, goals],
+    [diary, goals, favorites, savedMeals, posts],
   );
+
 
   return <DiaryContext.Provider value={value}>{children}</DiaryContext.Provider>;
 }
