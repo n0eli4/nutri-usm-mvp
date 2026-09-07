@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { foodById } from "@/data/foods";
+import { foodById, categoryIcon } from "@/data/foods";
 import {
   MEALS,
   MEAL_LABELS,
@@ -161,7 +161,12 @@ function DiarioPage() {
                     </span>
                   </div>
                   {entries.length === 0 ? (
-                    <p className="mt-2 text-xs text-muted-foreground">Sin registros todavía.</p>
+                    <div className="mt-2 rounded-xl border border-dashed border-border bg-background/60 px-3 py-4 text-center">
+                      <span aria-hidden className="text-xl">🍽️</span>
+                      <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                        Sin registros en {MEAL_LABELS[meal].toLowerCase()}
+                      </p>
+                    </div>
                   ) : (
                     <ul className="mt-2 space-y-2">
                       {entries.map((e) => {
@@ -172,16 +177,18 @@ function DiarioPage() {
                             key={e.id}
                             className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
                           >
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                            <span aria-hidden className="shrink-0 text-base">
+                              {categoryIcon(f.category)}
+                            </span>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-bold">
                                 {f.name}{" "}
                                 <span className="font-semibold text-muted-foreground">
-                                  ×{e.servings}
+                                  {Math.round(f.grams * e.servings)} g · {Math.round(f.kcal * e.servings)} kcal
                                 </span>
                               </p>
                               <p className="truncate text-[11px] text-muted-foreground">
-                                {Math.round(f.kcal * e.servings)} kcal · P{" "}
+                                {e.servings} × {f.portion} · P{" "}
                                 {(f.protein * e.servings).toFixed(0)}g · C{" "}
                                 {(f.carbs * e.servings).toFixed(0)}g · G{" "}
                                 {(f.fat * e.servings).toFixed(0)}g
