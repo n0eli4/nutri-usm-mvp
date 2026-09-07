@@ -14,8 +14,9 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { FOODS, type Food, foodById, alternativesFor, categoryIcon } from "@/data/foods";
+import { FOODS, type Food, foodById, alternativesFor } from "@/data/foods";
 import { RECIPES, RECIPE_TAGS, recipeTotals } from "@/data/recipes";
+import { FoodIcon } from "@/components/food-icon";
 import { MEALS, MEAL_LABELS, useDiary, type Meal } from "@/lib/diary-store";
 
 export const Route = createFileRoute("/")({
@@ -298,8 +299,8 @@ function RegistrarPage() {
                         key={alt.id}
                         className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
                       >
-                        <span aria-hidden className="shrink-0 text-base">
-                          {categoryIcon(alt.category)}
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-card text-primary">
+                          <FoodIcon category={alt.category} />
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-bold">
@@ -350,7 +351,9 @@ function RegistrarPage() {
                   >
                     <div className="flex min-w-0 items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span aria-hidden className="shrink-0 text-lg">{categoryIcon(f.category)}</span>
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+                          <FoodIcon category={f.category} />
+                        </span>
                         <div className="min-w-0">
                         <p className="truncate text-sm font-bold">{f.name}</p>
                         <p className="truncate text-xs text-muted-foreground">

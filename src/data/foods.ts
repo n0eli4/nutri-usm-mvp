@@ -43,22 +43,6 @@ export const FOODS: Food[] = [
   { id: "aceite-oliva", name: "Aceite de oliva", category: "Grasas", portion: "1 cucharada", grams: 14, kcal: 119, protein: 0, carbs: 0, fat: 13.5 , fiber: 0, sugar: 0, sodium: 0 },
 ];
 
-export const CATEGORY_ICON: Record<string, string> = {
-  Panificados: "🥖",
-  Cereales: "🌾",
-  "Proteínas": "🍗",
-  Legumbres: "🫘",
-  "Lácteos": "🥛",
-  Frutas: "🍎",
-  Verduras: "🥗",
-  Snacks: "🥜",
-  Grasas: "🫒",
-};
-
-export function categoryIcon(category: string): string {
-  return CATEGORY_ICON[category] ?? "🍽️";
-}
-
 /**
  * Alternativas compatibles con las metas: si el alimento es alto en grasa
  * sugiere opciones más magras, si es alto en calorías sugiere más livianas,

@@ -11,9 +11,12 @@ import {
   X,
   CalendarDays,
   Sparkles,
+  UtensilsCrossed,
+  Salad,
 } from "lucide-react";
 import { toast } from "sonner";
-import { foodById, categoryIcon } from "@/data/foods";
+import { foodById } from "@/data/foods";
+import { FoodIcon } from "@/components/food-icon";
 import {
   MEALS,
   MEAL_LABELS,
@@ -172,8 +175,8 @@ function DiarioPage() {
 
           {dayIsEmpty && (
             <div className="mt-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-3xl">
-                🥗
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-primary">
+                <Salad aria-hidden className="h-8 w-8" />
               </div>
               <h2 className="mt-3 text-sm font-extrabold">Aún no hay registros este día</h2>
               <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
@@ -207,7 +210,7 @@ function DiarioPage() {
                   </div>
                   {entries.length === 0 ? (
                     <div className="mt-2 rounded-xl border border-dashed border-border bg-background/60 px-3 py-4 text-center">
-                      <span aria-hidden className="text-xl">🍽️</span>
+                      <UtensilsCrossed aria-hidden className="mx-auto h-5 w-5 text-muted-foreground/60" />
                       <p className="mt-1 text-xs font-semibold text-muted-foreground">
                         Sin registros en {MEAL_LABELS[meal].toLowerCase()}
                       </p>
@@ -222,8 +225,8 @@ function DiarioPage() {
                             key={e.id}
                             className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
                           >
-                            <span aria-hidden className="shrink-0 text-base">
-                              {categoryIcon(f.category)}
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card text-primary">
+                              <FoodIcon category={f.category} className="h-3.5 w-3.5" />
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-bold">
