@@ -5,14 +5,18 @@ import {
   ChevronRight,
   Trash2,
   Flame,
-  CheckCircle2,
   Bookmark,
   Plus,
   Star,
   X,
+  CalendarDays,
+  Sparkles,
+  UtensilsCrossed,
+  Salad,
 } from "lucide-react";
 import { toast } from "sonner";
 import { foodById } from "@/data/foods";
+import { FoodIcon } from "@/components/food-icon";
 import {
   MEALS,
   MEAL_LABELS,
@@ -75,6 +79,7 @@ function DiarioPage() {
   const dateKey = daysAgo === 0 ? todayKey() : dateKeyOffset(daysAgo);
   const day = getDay(dateKey);
   const totals = totalsFor(day);
+  const dayIsEmpty = MEALS.every((m) => day[m].length === 0);
   const kcalPct = Math.min(100, Math.round((totals.kcal / goals.kcal) * 100));
 
   const quickAdd = (meal: Meal) => {
@@ -111,16 +116,40 @@ function DiarioPage() {
             >
               <ChevronRight className="h-5 w-5" />
             </button>
+            <label className="relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl text-muted-foreground hover:bg-accent">
+              <CalendarDays className="h-5 w-5" />
+              <span className="sr-only">Elegir fecha</span>
+              <input
+                type="date"
+                value={dateKey}
+                max={todayKey()}
+                onChange={(ev) => {
+                  if (!ev.target.value) return;
+                  const picked = new Date(ev.target.value + "T00:00:00");
+                  const today = new Date(todayKey() + "T00:00:00");
+                  const diff = Math.round((today.getTime() - picked.getTime()) / 86400000);
+                  setDaysAgo(Math.max(0, diff));
+                }}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
           </div>
 
           {/* Resumen del día */}
           <div className="mt-3 rounded-2xl border border-border bg-card p-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <Flame className="h-4 w-4 shrink-0 text-primary" />
-              <p className="truncate text-sm font-extrabold">
-                {Math.round(totals.kcal)} / {goals.kcal} kcal
+            <div className="flex min-w-0 items-end gap-2">
+              <Flame className="mb-1 h-5 w-5 shrink-0 text-primary" />
+              <p className="min-w-0 truncate text-2xl font-black leading-none tracking-tight lg:text-3xl">
+                {Math.round(totals.kcal)}
+                <span className="text-sm font-bold text-muted-foreground"> / {goals.kcal} kcal</span>
               </p>
-              <span className="ml-auto shrink-0 text-xs font-bold text-primary">{kcalPct}%</span>
+              <span
+                className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-extrabold ${
+                  kcalPct >= 100 ? "bg-alert-soft text-alert" : "bg-accent text-accent-foreground"
+                }`}
+              >
+                {kcalPct}%
+              </span>
             </div>
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
               <div
@@ -130,19 +159,38 @@ function DiarioPage() {
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.protein)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.protein)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Proteínas</p>
               </div>
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.carbs)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.carbs)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Carbohidratos</p>
               </div>
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.fat)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.fat)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Grasas</p>
               </div>
             </div>
           </div>
+
+          {dayIsEmpty && (
+            <div className="mt-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-primary">
+                <Salad aria-hidden className="h-8 w-8" />
+              </div>
+              <h2 className="mt-3 text-sm font-extrabold">Aún no hay registros este día</h2>
+              <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
+                Cuando anotes tu desayuno, almuerzo, once o cena, verás aquí el desglose con
+                calorías y macros de cada alimento.
+              </p>
+              <a
+                href="/"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Registrar un alimento
+              </a>
+            </div>
+          )}
 
           {/* Comidas */}
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -161,7 +209,12 @@ function DiarioPage() {
                     </span>
                   </div>
                   {entries.length === 0 ? (
-                    <p className="mt-2 text-xs text-muted-foreground">Sin registros todavía.</p>
+                    <div className="mt-2 rounded-xl border border-dashed border-border bg-background/60 px-3 py-4 text-center">
+                      <UtensilsCrossed aria-hidden className="mx-auto h-5 w-5 text-muted-foreground/60" />
+                      <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                        Sin registros en {MEAL_LABELS[meal].toLowerCase()}
+                      </p>
+                    </div>
                   ) : (
                     <ul className="mt-2 space-y-2">
                       {entries.map((e) => {
@@ -172,16 +225,18 @@ function DiarioPage() {
                             key={e.id}
                             className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
                           >
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card text-primary">
+                              <FoodIcon category={f.category} className="h-3.5 w-3.5" />
+                            </span>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-bold">
                                 {f.name}{" "}
                                 <span className="font-semibold text-muted-foreground">
-                                  ×{e.servings}
+                                  {Math.round(f.grams * e.servings)} g · {Math.round(f.kcal * e.servings)} kcal
                                 </span>
                               </p>
                               <p className="truncate text-[11px] text-muted-foreground">
-                                {Math.round(f.kcal * e.servings)} kcal · P{" "}
+                                {e.servings} × {f.portion} · P{" "}
                                 {(f.protein * e.servings).toFixed(0)}g · C{" "}
                                 {(f.carbs * e.servings).toFixed(0)}g · G{" "}
                                 {(f.fat * e.servings).toFixed(0)}g
