@@ -10,9 +10,11 @@ import {
   Star,
   Compass,
   Bookmark,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { FOODS, type Food, foodById } from "@/data/foods";
+import { FOODS, type Food, foodById, alternativesFor, categoryIcon } from "@/data/foods";
 import { RECIPES, RECIPE_TAGS, recipeTotals } from "@/data/recipes";
 import { MEALS, MEAL_LABELS, useDiary, type Meal } from "@/lib/diary-store";
 
@@ -221,6 +223,28 @@ function RegistrarPage() {
                 </div>
               </div>
 
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl border border-border/70 bg-background p-2">
+                  <p className="text-sm font-extrabold">{(selected.fiber * servings).toFixed(1)} g</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground">Fibra</p>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background p-2">
+                  <p className="text-sm font-extrabold">{(selected.sugar * servings).toFixed(1)} g</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground">Azúcares</p>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background p-2">
+                  <p className="text-sm font-extrabold">{Math.round(selected.sodium * servings)} mg</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground">Sodio</p>
+                </div>
+              </div>
+
+              {selected.sodium * servings >= 400 && (
+                <p className="mt-2 flex items-start gap-1.5 rounded-xl bg-alert-soft px-3 py-2 text-[11px] font-semibold text-alert">
+                  <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />
+                  Alto en sodio para una porción. Revisa las alternativas de abajo.
+                </p>
+              )}
+
               <div className="mt-3 flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-muted-foreground">Porciones</span>
                 <div className="flex items-center gap-3">
@@ -261,6 +285,46 @@ function RegistrarPage() {
                   {isFavorite(selected.id) ? "Guardado" : "Favorito"}
                 </button>
               </div>
+
+              {alternativesFor(selected).length > 0 && (
+                <div className="mt-4 border-t border-border pt-3">
+                  <h3 className="flex items-center gap-1.5 text-xs font-extrabold">
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" /> Alternativas
+                    recomendadas
+                  </h3>
+                  <ul className="mt-2 space-y-2">
+                    {alternativesFor(selected).map(({ food: alt, reason }) => (
+                      <li
+                        key={alt.id}
+                        className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
+                      >
+                        <span aria-hidden className="shrink-0 text-base">
+                          {categoryIcon(alt.category)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold">
+                            {alt.name}{" "}
+                            <span className="font-semibold text-muted-foreground">
+                              · {alt.kcal} kcal
+                            </span>
+                          </p>
+                          <p className="truncate text-[11px] font-semibold text-primary">{reason}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            pushToTray([{ foodId: alt.id, servings: 1 }]);
+                            toast.success(`${alt.name} añadido a la comida`);
+                          }}
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                          aria-label={`Añadir ${alt.name} a la comida`}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -285,11 +349,14 @@ function RegistrarPage() {
                     className="min-w-0 flex-1 text-left"
                   >
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span aria-hidden className="shrink-0 text-lg">{categoryIcon(f.category)}</span>
+                        <div className="min-w-0">
                         <p className="truncate text-sm font-bold">{f.name}</p>
                         <p className="truncate text-xs text-muted-foreground">
                           {f.portion} · {f.grams} g · {f.category}
                         </p>
+                        </div>
                       </div>
                       <span className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-extrabold text-accent-foreground">
                         {f.kcal} kcal
