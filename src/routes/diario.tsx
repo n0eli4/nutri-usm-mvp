@@ -134,12 +134,19 @@ function DiarioPage() {
 
           {/* Resumen del día */}
           <div className="mt-3 rounded-2xl border border-border bg-card p-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <Flame className="h-4 w-4 shrink-0 text-primary" />
-              <p className="truncate text-sm font-extrabold">
-                {Math.round(totals.kcal)} / {goals.kcal} kcal
+            <div className="flex min-w-0 items-end gap-2">
+              <Flame className="mb-1 h-5 w-5 shrink-0 text-primary" />
+              <p className="min-w-0 truncate text-2xl font-black leading-none tracking-tight lg:text-3xl">
+                {Math.round(totals.kcal)}
+                <span className="text-sm font-bold text-muted-foreground"> / {goals.kcal} kcal</span>
               </p>
-              <span className="ml-auto shrink-0 text-xs font-bold text-primary">{kcalPct}%</span>
+              <span
+                className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs font-extrabold ${
+                  kcalPct >= 100 ? "bg-alert-soft text-alert" : "bg-accent text-accent-foreground"
+                }`}
+              >
+                {kcalPct}%
+              </span>
             </div>
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
               <div
@@ -149,15 +156,15 @@ function DiarioPage() {
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.protein)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.protein)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Proteínas</p>
               </div>
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.carbs)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.carbs)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Carbohidratos</p>
               </div>
               <div className="rounded-xl bg-secondary p-2">
-                <p className="text-sm font-extrabold">{Math.round(totals.fat)} g</p>
+                <p className="text-base font-extrabold">{Math.round(totals.fat)} g</p>
                 <p className="text-[10px] font-semibold text-muted-foreground">Grasas</p>
               </div>
             </div>
