@@ -5,11 +5,12 @@ import {
   ChevronRight,
   Trash2,
   Flame,
-  CheckCircle2,
   Bookmark,
   Plus,
   Star,
   X,
+  CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { foodById, categoryIcon } from "@/data/foods";
@@ -75,6 +76,7 @@ function DiarioPage() {
   const dateKey = daysAgo === 0 ? todayKey() : dateKeyOffset(daysAgo);
   const day = getDay(dateKey);
   const totals = totalsFor(day);
+  const dayIsEmpty = MEALS.every((m) => day[m].length === 0);
   const kcalPct = Math.min(100, Math.round((totals.kcal / goals.kcal) * 100));
 
   const quickAdd = (meal: Meal) => {
@@ -111,6 +113,23 @@ function DiarioPage() {
             >
               <ChevronRight className="h-5 w-5" />
             </button>
+            <label className="relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-xl text-muted-foreground hover:bg-accent">
+              <CalendarDays className="h-5 w-5" />
+              <span className="sr-only">Elegir fecha</span>
+              <input
+                type="date"
+                value={dateKey}
+                max={todayKey()}
+                onChange={(ev) => {
+                  if (!ev.target.value) return;
+                  const picked = new Date(ev.target.value + "T00:00:00");
+                  const today = new Date(todayKey() + "T00:00:00");
+                  const diff = Math.round((today.getTime() - picked.getTime()) / 86400000);
+                  setDaysAgo(Math.max(0, diff));
+                }}
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
           </div>
 
           {/* Resumen del día */}
@@ -143,6 +162,25 @@ function DiarioPage() {
               </div>
             </div>
           </div>
+
+          {dayIsEmpty && (
+            <div className="mt-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-3xl">
+                🥗
+              </div>
+              <h2 className="mt-3 text-sm font-extrabold">Aún no hay registros este día</h2>
+              <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
+                Cuando anotes tu desayuno, almuerzo, once o cena, verás aquí el desglose con
+                calorías y macros de cada alimento.
+              </p>
+              <a
+                href="/"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Registrar un alimento
+              </a>
+            </div>
+          )}
 
           {/* Comidas */}
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
