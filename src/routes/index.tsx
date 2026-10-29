@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { FOODS, type Food, foodById, alternativesFor } from "@/data/foods";
 import { RECIPES, RECIPE_TAGS, recipeTotals } from "@/data/recipes";
 import { FoodIcon } from "@/components/food-icon";
-import { MEALS, MEAL_LABELS, useDiary, type Meal } from "@/lib/diary-store";
+import { MEALS, MEAL_LABELS, todayKey, useDiary, type Meal } from "@/lib/diary-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +36,13 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { meal?: Meal; date?: string } => {
+    const { meal, date } = search;
+    const result: { meal?: Meal; date?: string } = {};
+    if (MEALS.includes(meal as Meal)) result.meal = meal as Meal;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) result.date = date;
+    return result;
+  },
   component: RegistrarPage,
 });
 
@@ -83,6 +90,9 @@ function MacroChip({ label, value }: { label: string; value: string }) {
 function RegistrarPage() {
   const { addEntries, favorites, toggleFavorite, isFavorite, saveMeal } = useDiary();
   const navigate = useNavigate();
+  const { meal: presetMeal, date: presetDate } = Route.useSearch();
+  const targetDate = presetDate ?? todayKey();
+  const targetDayLabel = targetDate === todayKey() ? "hoy" : targetDate;
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("todos");
   const [selected, setSelected] = useState<Food | null>(null);
@@ -129,8 +139,12 @@ function RegistrarPage() {
   };
 
   const register = (meal: Meal) => {
-    addEntries(meal, tray.map((i) => ({ foodId: i.food.id, servings: i.servings })));
-    toast.success(`¡Registrado en ${MEAL_LABELS[meal]}!`, {
+    addEntries(
+      meal,
+      tray.map((i) => ({ foodId: i.food.id, servings: i.servings })),
+      targetDate,
+    );
+    toast.success(`¡Registrado en ${MEAL_LABELS[meal]} (${targetDayLabel})!`, {
       description: `${tray.length} alimento${tray.length > 1 ? "s" : ""} · ${Math.round(trayKcal)} kcal`,
     });
     setTray([]);
@@ -157,6 +171,12 @@ function RegistrarPage() {
       <p className="mt-0.5 text-sm text-muted-foreground">
         Busca un alimento, descubre opciones nuevas y arma tu comida.
       </p>
+
+      {presetMeal && (
+        <p className="mt-3 rounded-xl bg-accent px-3 py-2 text-xs font-bold text-accent-foreground">
+          Estás agregando alimentos a {MEAL_LABELS[presetMeal]} ({targetDayLabel}).
+        </p>
+      )}
 
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-8">
         {/* Columna de búsqueda */}
@@ -474,11 +494,12 @@ function RegistrarPage() {
             </div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
               <button
-                onClick={() => setMealPickerOpen(true)}
+                onClick={() => (presetMeal ? register(presetMeal) : setMealPickerOpen(true))}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground"
               >
                 <Check className="h-4 w-4" />
-                Registrar comida ({tray.length}) · {Math.round(trayKcal)} kcal
+                {presetMeal ? `Registrar en ${MEAL_LABELS[presetMeal]}` : "Registrar comida"} (
+                {tray.length}) · {Math.round(trayKcal)} kcal
               </button>
               <button
                 onClick={saveTrayAsMeal}

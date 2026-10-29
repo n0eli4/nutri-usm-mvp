@@ -304,6 +304,7 @@ function DiarioPage() {
                   )}
                   <Link
                     to="/"
+                    search={{ meal, date: dateKey }}
                     className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-accent py-2 text-xs font-bold text-accent-foreground hover:bg-accent/80"
                   >
                     <Plus className="h-3.5 w-3.5" /> Agregar alimento a {MEAL_LABELS[meal].toLowerCase()}
