@@ -154,6 +154,7 @@ interface DiaryContextValue {
   getDay: (dateKey: string) => DayMeals;
   addEntries: (meal: Meal, items: { foodId: string; servings: number }[], dateKey?: string) => void;
   removeEntry: (dateKey: string, meal: Meal, entryId: string) => void;
+  updateEntry: (dateKey: string, meal: Meal, entryId: string, servings: number) => void;
   setGoals: (g: Goals) => void;
   favorites: string[];
   toggleFavorite: (foodId: string) => void;
@@ -247,6 +248,17 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
           return {
             ...prev,
             [dateKey]: { ...day, [meal]: day[meal].filter((e) => e.id !== entryId) },
+          };
+        }),
+      updateEntry: (dateKey, meal, entryId, servings) =>
+        setDiary((prev) => {
+          const day = prev[dateKey] ?? emptyDay();
+          return {
+            ...prev,
+            [dateKey]: {
+              ...day,
+              [meal]: day[meal].map((e) => (e.id === entryId ? { ...e, servings } : e)),
+            },
           };
         }),
       setGoals,
