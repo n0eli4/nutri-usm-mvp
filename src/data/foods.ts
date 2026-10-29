@@ -97,3 +97,24 @@ export function alternativesFor(food: Food, limit = 3): FoodAlternative[] {
 export function foodById(id: string): Food | undefined {
   return FOODS.find((f) => f.id === id);
 }
+
+/**
+ * Quita tildes y pasa a minúsculas para comparar textos.
+ * "Plátano" -> "platano"
+ */
+export function normalizeText(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** Busca por nombre o categoría sin depender de tildes ni mayúsculas. */
+export function searchFoods(query: string): Food[] {
+  const q = normalizeText(query);
+  if (!q) return FOODS;
+  return FOODS.filter(
+    (f) => normalizeText(f.name).includes(q) || normalizeText(f.category).includes(q),
+  );
+}

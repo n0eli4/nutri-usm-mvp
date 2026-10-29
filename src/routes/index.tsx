@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { FOODS, type Food, foodById, alternativesFor } from "@/data/foods";
+import { type Food, foodById, alternativesFor, searchFoods } from "@/data/foods";
 import { RECIPES, RECIPE_TAGS, recipeTotals } from "@/data/recipes";
 import { FoodIcon } from "@/components/food-icon";
 import { MEALS, MEAL_LABELS, todayKey, useDiary, type Meal } from "@/lib/diary-store";
@@ -101,14 +101,10 @@ function RegistrarPage() {
   const [mealPickerOpen, setMealPickerOpen] = useState(false);
   const [recipeTag, setRecipeTag] = useState<string>("Todas");
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return FOODS.filter((f) => {
-      const byText =
-        !q || f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q);
-      return byText && matchesFilter(f, filter, favorites);
-    });
-  }, [query, filter, favorites]);
+  const results = useMemo(
+    () => searchFoods(query).filter((f) => matchesFilter(f, filter, favorites)),
+    [query, filter, favorites],
+);
 
   const visibleRecipes = useMemo(
     () => (recipeTag === "Todas" ? RECIPES : RECIPES.filter((r) => r.tags.includes(recipeTag))),
