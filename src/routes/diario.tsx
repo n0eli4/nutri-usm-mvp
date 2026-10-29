@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ChevronLeft,
@@ -7,6 +7,7 @@ import {
   Flame,
   Bookmark,
   Plus,
+  Minus,
   Star,
   X,
   CalendarDays,
@@ -45,8 +46,16 @@ export const Route = createFileRoute("/diario")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const { date } = search;
+    return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {};
+  },
   component: DiarioPage,
 });
+
+const MIN_SERVINGS = 0.5;
+const MAX_SERVINGS = 10;
+const SERVING_STEP = 0.5;
 
 function formatDate(daysAgo: number): string {
   const d = new Date();
@@ -67,6 +76,7 @@ function DiarioPage() {
   const {
     getDay,
     removeEntry,
+    updateEntry,
     goals,
     savedMeals,
     removeSavedMeal,
@@ -74,7 +84,13 @@ function DiarioPage() {
     favorites,
     saveMeal,
   } = useDiary();
-  const [daysAgo, setDaysAgo] = useState(0);
+  const { date: initialDate } = Route.useSearch();
+  const [daysAgo, setDaysAgo] = useState(() => {
+    if (!initialDate) return 0;
+    const picked = new Date(initialDate + "T00:00:00");
+    const today = new Date(todayKey() + "T00:00:00");
+    return Math.max(0, Math.round((today.getTime() - picked.getTime()) / 86400000));
+  });
   const [pending, setPending] = useState<SavedMeal | null>(null);
   const dateKey = daysAgo === 0 ? todayKey() : dateKeyOffset(daysAgo);
   const day = getDay(dateKey);
@@ -183,12 +199,12 @@ function DiarioPage() {
                 Cuando anotes tu desayuno, almuerzo, once o cena, verás aquí el desglose con
                 calorías y macros de cada alimento.
               </p>
-              <a
-                href="/"
+              <Link
+                to="/"
                 className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
               >
                 <Sparkles className="h-3.5 w-3.5" /> Registrar un alimento
-              </a>
+              </Link>
             </div>
           )}
 
@@ -221,39 +237,103 @@ function DiarioPage() {
                         const f = foodById(e.foodId);
                         if (!f) return null;
                         return (
-                          <li
-                            key={e.id}
-                            className="flex min-w-0 items-center gap-2 rounded-xl bg-secondary px-3 py-2"
-                          >
-                            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card text-primary">
-                              <FoodIcon category={f.category} className="h-3.5 w-3.5" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-bold">
-                                {f.name}{" "}
-                                <span className="font-semibold text-muted-foreground">
-                                  {Math.round(f.grams * e.servings)} g · {Math.round(f.kcal * e.servings)} kcal
-                                </span>
-                              </p>
-                              <p className="truncate text-[11px] text-muted-foreground">
-                                {e.servings} × {f.portion} · P{" "}
-                                {(f.protein * e.servings).toFixed(0)}g · C{" "}
-                                {(f.carbs * e.servings).toFixed(0)}g · G{" "}
-                                {(f.fat * e.servings).toFixed(0)}g
-                              </p>
+                          <li key={e.id} className="min-w-0 rounded-xl bg-secondary px-3 py-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card text-primary">
+                                <FoodIcon category={f.category} className="h-3.5 w-3.5" />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold">
+                                  {f.name}{" "}
+                                  <span className="font-semibold text-muted-foreground">
+                                    {Math.round(f.kcal * e.servings)} kcal
+                                  </span>
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {Math.round(f.grams * e.servings)} g · P{" "}
+                                  {(f.protein * e.servings).toFixed(0)}g · C{" "}
+                                  {(f.carbs * e.servings).toFixed(0)}g · G{" "}
+                                  {(f.fat * e.servings).toFixed(0)}g
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  removeEntry(dateKey, meal, e.id);
+                                  toast(`${f.name} eliminado de ${MEAL_LABELS[meal]}`, {
+                                    action: {
+                                      label: "Deshacer",
+                                      onClick: () =>
+                                        addEntries(
+                                          meal,
+                                          [{ foodId: e.foodId, servings: e.servings }],
+                                          dateKey,
+                                        ),
+                                    },
+                                  });
+                                }}
+                                className="shrink-0 text-muted-foreground hover:text-destructive"
+                                aria-label={`Eliminar ${f.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
-                            <button
-                              onClick={() => removeEntry(dateKey, meal, e.id)}
-                              className="shrink-0 text-muted-foreground hover:text-destructive"
-                              aria-label={`Eliminar ${f.name}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
+                              <span className="min-w-0 truncate text-[11px] font-semibold text-muted-foreground">
+                                Porciones · {f.portion}
+                              </span>
+                              <div className="flex shrink-0 items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (e.servings <= MIN_SERVINGS) {
+                                      toast.info("La porción mínima es 0,5", {
+                                        description: `Si no quieres ${f.name.toLowerCase()}, usa el tacho para eliminarlo.`,
+                                      });
+                                      return;
+                                    }
+                                    updateEntry(dateKey, meal, e.id, e.servings - SERVING_STEP);
+                                  }}
+                                  className={`grid h-7 w-7 place-items-center rounded-full border border-border bg-background ${
+                                    e.servings <= MIN_SERVINGS ? "opacity-40" : ""
+                                  }`}
+                                  aria-label={`Menos porción de ${f.name}`}
+                                >
+                                  <Minus className="h-3.5 w-3.5" />
+                                </button>
+                                <span
+                                  className="w-8 text-center text-xs font-extrabold"
+                                  aria-label={`${e.servings} porciones`}
+                                >
+                                  {e.servings}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    if (e.servings >= MAX_SERVINGS) {
+                                      toast.info(`El máximo es ${MAX_SERVINGS} porciones`);
+                                      return;
+                                    }
+                                    updateEntry(dateKey, meal, e.id, e.servings + SERVING_STEP);
+                                  }}
+                                  className={`grid h-7 w-7 place-items-center rounded-full border border-border bg-background ${
+                                    e.servings >= MAX_SERVINGS ? "opacity-40" : ""
+                                  }`}
+                                  aria-label={`Más porción de ${f.name}`}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           </li>
                         );
                       })}
                     </ul>
                   )}
+                  <Link
+                    to="/"
+                    search={{ meal, date: dateKey }}
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-accent py-2 text-xs font-bold text-accent-foreground hover:bg-accent/80"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Agregar alimento a {MEAL_LABELS[meal].toLowerCase()}
+                  </Link>
                   {entries.length > 0 && (
                     <button
                       onClick={() => {
