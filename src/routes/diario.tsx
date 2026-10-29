@@ -257,7 +257,20 @@ function DiarioPage() {
                                 </p>
                               </div>
                               <button
-                                onClick={() => removeEntry(dateKey, meal, e.id)}
+                                onClick={() => {
+                                  removeEntry(dateKey, meal, e.id);
+                                  toast(`${f.name} eliminado de ${MEAL_LABELS[meal]}`, {
+                                    action: {
+                                      label: "Deshacer",
+                                      onClick: () =>
+                                        addEntries(
+                                          meal,
+                                          [{ foodId: e.foodId, servings: e.servings }],
+                                          dateKey,
+                                        ),
+                                    },
+                                  });
+                                }}
                                 className="shrink-0 text-muted-foreground hover:text-destructive"
                                 aria-label={`Eliminar ${f.name}`}
                               >
@@ -270,16 +283,18 @@ function DiarioPage() {
                               </span>
                               <div className="flex shrink-0 items-center gap-1">
                                 <button
-                                  onClick={() =>
-                                    updateEntry(
-                                      dateKey,
-                                      meal,
-                                      e.id,
-                                      Math.max(MIN_SERVINGS, e.servings - SERVING_STEP),
-                                    )
-                                  }
-                                  disabled={e.servings <= MIN_SERVINGS}
-                                  className="grid h-7 w-7 place-items-center rounded-full border border-border bg-background disabled:opacity-30"
+                                  onClick={() => {
+                                    if (e.servings <= MIN_SERVINGS) {
+                                      toast.info("La porción mínima es 0,5", {
+                                        description: `Si no quieres ${f.name.toLowerCase()}, usa el tacho para eliminarlo.`,
+                                      });
+                                      return;
+                                    }
+                                    updateEntry(dateKey, meal, e.id, e.servings - SERVING_STEP);
+                                  }}
+                                  className={`grid h-7 w-7 place-items-center rounded-full border border-border bg-background ${
+                                    e.servings <= MIN_SERVINGS ? "opacity-40" : ""
+                                  }`}
                                   aria-label={`Menos porción de ${f.name}`}
                                 >
                                   <Minus className="h-3.5 w-3.5" />
@@ -291,16 +306,16 @@ function DiarioPage() {
                                   {e.servings}
                                 </span>
                                 <button
-                                  onClick={() =>
-                                    updateEntry(
-                                      dateKey,
-                                      meal,
-                                      e.id,
-                                      Math.min(MAX_SERVINGS, e.servings + SERVING_STEP),
-                                    )
-                                  }
-                                  disabled={e.servings >= MAX_SERVINGS}
-                                  className="grid h-7 w-7 place-items-center rounded-full border border-border bg-background disabled:opacity-30"
+                                  onClick={() => {
+                                    if (e.servings >= MAX_SERVINGS) {
+                                      toast.info(`El máximo es ${MAX_SERVINGS} porciones`);
+                                      return;
+                                    }
+                                    updateEntry(dateKey, meal, e.id, e.servings + SERVING_STEP);
+                                  }}
+                                  className={`grid h-7 w-7 place-items-center rounded-full border border-border bg-background ${
+                                    e.servings >= MAX_SERVINGS ? "opacity-40" : ""
+                                  }`}
                                   aria-label={`Más porción de ${f.name}`}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
