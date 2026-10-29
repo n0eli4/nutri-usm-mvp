@@ -46,6 +46,10 @@ export const Route = createFileRoute("/diario")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { date?: string } => {
+    const { date } = search;
+    return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {};
+  },
   component: DiarioPage,
 });
 
@@ -80,7 +84,13 @@ function DiarioPage() {
     favorites,
     saveMeal,
   } = useDiary();
-  const [daysAgo, setDaysAgo] = useState(0);
+  const { date: initialDate } = Route.useSearch();
+  const [daysAgo, setDaysAgo] = useState(() => {
+    if (!initialDate) return 0;
+    const picked = new Date(initialDate + "T00:00:00");
+    const today = new Date(todayKey() + "T00:00:00");
+    return Math.max(0, Math.round((today.getTime() - picked.getTime()) / 86400000));
+  });
   const [pending, setPending] = useState<SavedMeal | null>(null);
   const dateKey = daysAgo === 0 ? todayKey() : dateKeyOffset(daysAgo);
   const day = getDay(dateKey);

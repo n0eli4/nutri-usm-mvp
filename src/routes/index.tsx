@@ -149,7 +149,7 @@ function RegistrarPage() {
     });
     setTray([]);
     setMealPickerOpen(false);
-    navigate({ to: "/diario" });
+    navigate({ to: "/diario", search: presetDate ? { date: presetDate } : {} });
   };
 
   const saveTrayAsMeal = () => {
