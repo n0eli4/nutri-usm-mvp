@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Target, Pencil, Check, AlertCircle, TrendingUp, CheckCircle2, Utensils, X } from "lucide-react";
+import { Target, Pencil, Check, AlertCircle, TrendingUp, CheckCircle2, Utensils, X, BookOpen } from "lucide-react";
 import { dateKeyOffset, todayKey, totalsFor, useDiary, type Goals } from "@/lib/diary-store";
 
 export const Route = createFileRoute("/progreso")({
@@ -268,7 +268,12 @@ function ProgresoPage() {
         </div>
       )}
 
-      <h2 className="mt-5 text-sm font-extrabold">Hoy</h2>
+      <div className="mt-5 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-extrabold">Hoy</h2>
+        <Link to="/diario" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+          <BookOpen className="h-3.5 w-3.5" /> Ver diario
+        </Link>
+      </div>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {MACRO_META.map((m) => (
           <MacroBar
@@ -390,6 +395,15 @@ function ProgresoPage() {
             </div>
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">No registraste comidas este día.</p>
+          )}
+          {selected.totals.kcal > 0 && (
+            <Link
+              to="/diario"
+              search={{ date: selected.key }}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+            >
+              <BookOpen className="h-3.5 w-3.5" /> Ver este día en el Diario
+            </Link>
           )}
         </div>
       ) : (
