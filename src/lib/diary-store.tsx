@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { FOODS, foodById } from "@/data/foods";
+import { foodById } from "@/data/foods";
 
 export const MEALS = ["desayuno", "almuerzo", "once", "cena"] as const;
 export type Meal = (typeof MEALS)[number];
@@ -38,14 +38,21 @@ export const DEFAULT_GOALS: Goals = { kcal: 2200, protein: 95, carbs: 250, fat: 
 
 const STORAGE_KEY = "nutriusm-diary-v1";
 
+function localDateKey(date: Date): string {
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return [year, month, day].join("-");
+}
+
 export function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey(new Date());
 }
 
 export function dateKeyOffset(daysAgo: number): string {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 function emptyDay(): DayMeals {
@@ -169,6 +176,7 @@ interface DiaryContextValue {
 const DiaryContext = createContext<DiaryContextValue | null>(null);
 
 function loadJSON<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw) as T;
@@ -179,6 +187,7 @@ function loadJSON<T>(key: string, fallback: T): T {
 }
 
 function loadDiary(): Diary {
+  if (typeof window === "undefined") return seedDiary();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw) as Diary;
@@ -188,7 +197,8 @@ function loadDiary(): Diary {
   return seedDiary();
 }
 
-export function DiaryProvider({ children }: { children: ReactNode }) {
+// ✅ FIX S6759: Props de solo lectura
+export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [diary, setDiary] = useState<Diary>(() => loadDiary());
   const [goals, setGoals] = useState<Goals>(() => loadJSON(STORAGE_KEY + "-goals", DEFAULT_GOALS));
   const [favorites, setFavorites] = useState<string[]>(() =>
@@ -208,7 +218,6 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [favorites, savedMeals, posts]);
-
 
   useEffect(() => {
     try {
@@ -285,7 +294,6 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     [diary, goals, favorites, savedMeals, posts],
   );
 
-
   return <DiaryContext.Provider value={value}>{children}</DiaryContext.Provider>;
 }
 
@@ -295,4 +303,5 @@ export function useDiary(): DiaryContextValue {
   return ctx;
 }
 
-export { FOODS };
+// ✅ FIX S7763: Re-exportación directa
+export { FOODS } from "@/data/foods";
