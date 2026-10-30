@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -97,6 +97,8 @@ function RegistrarPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("todos");
   const [selected, setSelected] = useState<Food | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const [selectionRequest, setSelectionRequest] = useState(0);
   const [servings, setServings] = useState(1);
   const [tray, setTray] = useState<TrayItem[]>([]);
   const [mealPickerOpen, setMealPickerOpen] = useState(false);
@@ -120,6 +122,11 @@ function RegistrarPage() {
     () => (recipeTag === "Todas" ? RECIPES : RECIPES.filter((r) => r.tags.includes(recipeTag))),
     [recipeTag],
   );
+
+  useEffect(() => {
+    if (!selected) return;
+    detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selected, selectionRequest]);
 
   const trayKcal = tray.reduce((sum, i) => sum + i.food.kcal * i.servings, 0);
 
@@ -215,7 +222,10 @@ function RegistrarPage() {
           </div>
 
           {selected && (
-            <div className="mt-4 rounded-2xl border-2 border-primary/40 bg-card p-4 shadow-sm">
+            <div
+              ref={detailRef}
+              className="mt-4 scroll-mt-20 rounded-2xl border-2 border-primary/40 bg-card p-4 shadow-sm"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h2 className="truncate text-base font-bold">{selected.name}</h2>
@@ -373,6 +383,7 @@ function RegistrarPage() {
                     onClick={() => {
                       setSelected(f);
                       setServings(1);
+                      setSelectionRequest((request) => request + 1);
                     }}
                     className="min-w-0 flex-1 text-left"
                   >
@@ -509,7 +520,7 @@ function RegistrarPage() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground"
               >
                 <Check className="h-4 w-4" />
-                {presetMeal ? `Registrar en ${MEAL_LABELS[presetMeal]}` : "Registrar comida"} (
+                {presetMeal ? `Registrar en ${MEAL_LABELS[presetMeal]}` : "Confirmar registro de comida"} (
                 {tray.length}) · {Math.round(trayKcal)} kcal
               </button>
               <button
