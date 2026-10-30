@@ -38,14 +38,21 @@ export const DEFAULT_GOALS: Goals = { kcal: 2200, protein: 95, carbs: 250, fat: 
 
 const STORAGE_KEY = "nutriusm-diary-v1";
 
+function localDateKey(date: Date): string {
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return [year, month, day].join("-");
+}
+
 export function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey(new Date());
 }
 
 export function dateKeyOffset(daysAgo: number): string {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 function emptyDay(): DayMeals {
