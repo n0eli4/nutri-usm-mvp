@@ -36,3 +36,5 @@ CLAUDE.md
 
 # Vercel
 .vercel/
+.vercel
+.env*

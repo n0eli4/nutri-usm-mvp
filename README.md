@@ -6,6 +6,8 @@ El proyecto corresponde al MVP del Equipo 2 para la asignatura DIU de la Univers
 
 **Repositorio:** [n0eli4/nutri-usm-mvp](https://github.com/n0eli4/nutri-usm-mvp)
 
+**Aplicación publicada:** [NUTRIUSM](https://nutri-usm-mvp.vercel.app)
+
 ## Funciones principales
 
 - **Buscar y registrar alimentos:** el buscador encuentra alimentos sin depender de tildes o mayúsculas. Cada alimento muestra su porción, calorías, proteínas, carbohidratos y grasas. Las cantidades se ajustan antes de confirmar el registro.
@@ -47,6 +49,23 @@ bun run build
 
 Este comando genera la compilación de producción de la aplicación. La instalación y la compilación se comprobaron durante la integración del equipo.
 
+## Publicación en Vercel
+
+La aplicación se publicó desde la terminal en el proyecto `nutri-usm-mvp` del equipo `grupo2-e39c`.
+
+La configuración de `vite.config.ts` utiliza el preset `vercel` de Nitro y genera la carpeta `.vercel/output`.
+
+Para actualizar el sitio desde una carpeta vinculada y una cuenta con acceso al proyecto se ejecutan:
+
+```powershell
+bun run build
+bun x vercel deploy --prebuilt --prod
+```
+
+La vinculación inicial se realiza con `bun x vercel login` y `bun x vercel link`, seleccionando el proyecto existente.
+
+La publicación es manual; cada actualización del sitio requiere compilar y desplegar.
+
 ## Almacenamiento y datos de ejemplo
 
 Los registros, favoritos, comidas guardadas y metas se conservan al recargar mediante `localStorage`. Los datos pertenecen al navegador y a la dirección desde la que se abre la aplicación; otro navegador o dominio mantiene un almacenamiento independiente.
@@ -76,6 +95,6 @@ Las fechas del Diario se calculan con el calendario local del dispositivo. Duran
 | Noelia Morales | Registro de comidas, Diario y edición de porciones. |
 | Hans Gonzalez | Comidas guardadas y combinaciones con costos y tiempos. |
 | Kevin Redel | Progreso, resumen semanal y validación de metas. |
-| Luis Soto | Datos compartidos, corrección de fechas, integración y documentación. |
+| Luis Soto | Datos compartidos, corrección de fechas, integración, documentación y publicación. |
 
 El código inicial proviene del prototipo desarrollado en Lovable para la entrega anterior. El equipo continuó el trabajo en este repositorio y conservó los commits de sus integrantes durante la integración.
