@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Leaf, Search, BookOpen, TrendingUp, Users } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { DiaryProvider } from "@/lib/diary-store";
@@ -196,6 +196,11 @@ function SideNav() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [clientReady, setClientReady] = useState(false);
+
+  useEffect(() => {
+    setClientReady(true);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -209,7 +214,13 @@ function RootComponent() {
               </div>
             </header>
             <main className="mx-auto w-full max-w-md flex-1 pb-24 lg:max-w-6xl lg:px-8 lg:py-6 lg:pb-10">
-              <Outlet />
+              {clientReady ? (
+                <Outlet />
+              ) : (
+                <p role="status" className="px-4 py-6 text-sm text-muted-foreground">
+                  Cargando datos...
+                </p>
+              )}
             </main>
           </div>
           <BottomNav />

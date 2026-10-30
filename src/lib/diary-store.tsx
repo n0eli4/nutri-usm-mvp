@@ -176,6 +176,7 @@ interface DiaryContextValue {
 const DiaryContext = createContext<DiaryContextValue | null>(null);
 
 function loadJSON<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw) as T;
@@ -186,6 +187,7 @@ function loadJSON<T>(key: string, fallback: T): T {
 }
 
 function loadDiary(): Diary {
+  if (typeof window === "undefined") return seedDiary();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw) as Diary;
