@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -98,9 +98,22 @@ function DiarioPage() {
   const dayIsEmpty = MEALS.every((m) => day[m].length === 0);
   const kcalPct = Math.min(100, Math.round((totals.kcal / goals.kcal) * 100));
 
+  useEffect(() => {
+    if (!pending) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPending(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pending]);
+
   const quickAdd = (meal: Meal) => {
     if (!pending) return;
-    addEntries(meal, pending.items, dateKey);
+    addEntries(
+      meal,
+      pending.items.map((i) => ({ ...i })),
+      dateKey,
+    );
     toast.success(`${pending.name} añadida a ${MEAL_LABELS[meal]}`, {
       description: `${Math.round(savedMealKcal(pending))} kcal`,
     });
@@ -337,11 +350,22 @@ function DiarioPage() {
                   {entries.length > 0 && (
                     <button
                       onClick={() => {
+                        const foodNames = entries
+                          .map((e) => foodById(e.foodId)?.name)
+                          .filter((name): name is string => Boolean(name));
+                        const baseName = foodNames.slice(0, 2).join(" + ");
+                        const mealName =
+                          foodNames.length > 2
+                            ? `${baseName} +${foodNames.length - 2}`
+                            : baseName || MEAL_LABELS[meal];
+
                         saveMeal(
-                          `${MEAL_LABELS[meal]} de ${formatDate(daysAgo).toLowerCase()}`,
+                          mealName,
                           entries.map((e) => ({ foodId: e.foodId, servings: e.servings })),
                         );
-                        toast.success("Comida guardada para repetirla después");
+                        toast.success("Comida guardada para repetirla después", {
+                          description: `“${mealName}” · ${entries.length} ingrediente${entries.length > 1 ? "s" : ""}`,
+                        });
                       }}
                       className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-background py-2 text-xs font-bold text-foreground hover:border-primary/40"
                     >
@@ -376,9 +400,16 @@ function DiarioPage() {
                     <p className="truncate text-sm font-bold">{m.name}</p>
                     <p className="truncate text-[11px] text-muted-foreground">
                       {m.items
-                        .map((i) => foodById(i.foodId)?.name ?? "")
+                        .map((i) => {
+                          const f = foodById(i.foodId);
+                          return f ? `${f.name} ×${i.servings}` : "";
+                        })
                         .filter(Boolean)
-                        .join(", ")}
+                        .join(" · ")}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+                      {m.items.length} ingrediente{m.items.length > 1 ? "s" : ""} ·{" "}
+                      {Math.round(savedMealKcal(m))} kcal
                     </p>
                   </div>
                   <button
@@ -424,16 +455,16 @@ function DiarioPage() {
         </aside>
       </div>
 
-      {/* Selector de comida para guardados */}
+      {/* ✅ FIX S6819, S6848, S1082: Modal nativo con <dialog> */}
       {pending && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-          onClick={() => setPending(null)}
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full w-full max-w-none items-end justify-center bg-black/40 p-0 sm:items-center"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setPending(null);
+          }}
         >
-          <div
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5">
             <div className="flex items-center justify-between gap-2">
               <h2 className="min-w-0 truncate text-base font-extrabold">
                 Agregar “{pending.name}” a…
@@ -458,7 +489,7 @@ function DiarioPage() {
               ))}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );

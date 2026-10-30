@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Plus,
@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { FOODS, type Food, foodById, alternativesFor } from "@/data/foods";
+import { type Food, foodById, alternativesFor, searchFoods } from "@/data/foods";
 import { RECIPES, RECIPE_TAGS, recipeTotals } from "@/data/recipes";
 import { FoodIcon } from "@/components/food-icon";
 import { MEALS, MEAL_LABELS, todayKey, useDiary, type Meal } from "@/lib/diary-store";
@@ -79,7 +79,8 @@ function matchesFilter(f: Food, filter: FilterId, favorites: string[]): boolean 
   }
 }
 
-function MacroChip({ label, value }: { label: string; value: string }) {
+// ✅ FIX S6759: Props de solo lectura
+function MacroChip({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
       {label} {value}
@@ -101,14 +102,19 @@ function RegistrarPage() {
   const [mealPickerOpen, setMealPickerOpen] = useState(false);
   const [recipeTag, setRecipeTag] = useState<string>("Todas");
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return FOODS.filter((f) => {
-      const byText =
-        !q || f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q);
-      return byText && matchesFilter(f, filter, favorites);
-    });
-  }, [query, filter, favorites]);
+  useEffect(() => {
+    if (!mealPickerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMealPickerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mealPickerOpen]);
+
+  const results = useMemo(
+    () => searchFoods(query).filter((f) => matchesFilter(f, filter, favorites)),
+    [query, filter, favorites],
+  );
 
   const visibleRecipes = useMemo(
     () => (recipeTag === "Todas" ? RECIPES : RECIPES.filter((r) => r.tags.includes(recipeTag))),
@@ -149,7 +155,8 @@ function RegistrarPage() {
     });
     setTray([]);
     setMealPickerOpen(false);
-    navigate({ to: "/diario", search: presetDate ? { date: presetDate } : {} });
+    // ✅ FIX S9383: Promesa ignorada explícitamente con void
+    void navigate({ to: "/diario", search: presetDate ? { date: presetDate } : {} });
   };
 
   const saveTrayAsMeal = () => {
@@ -457,6 +464,10 @@ function RegistrarPage() {
                     {Math.round(t.kcal)} kcal · P {Math.round(t.protein)}g · C {Math.round(t.carbs)}g
                     · G {Math.round(t.fat)}g
                   </p>
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] font-semibold text-muted-foreground">
+                    <span>⏱ {r.estimatedMinutes} min</span>
+                    <span>💲 ${r.estimatedCost?.toLocaleString("es-CL")}</span>
+                  </p>
                   <button
                     onClick={() => {
                       pushToTray(r.items);
@@ -512,16 +523,16 @@ function RegistrarPage() {
         </div>
       )}
 
-      {/* Selector de comida */}
+      {/* ✅ FIX S6819, S6848, S1082: Modal nativo con <dialog> */}
       {mealPickerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
-          onClick={() => setMealPickerOpen(false)}
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full w-full max-w-none items-end justify-center bg-black/40 p-0 sm:items-center"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setMealPickerOpen(false);
+          }}
         >
-          <div
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5">
             <h2 className="text-base font-extrabold">¿En qué comida lo registro?</h2>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {MEALS.map((meal) => (
@@ -535,7 +546,7 @@ function RegistrarPage() {
               ))}
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   );
