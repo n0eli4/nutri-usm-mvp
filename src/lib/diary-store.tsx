@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { FOODS, foodById } from "@/data/foods";
+import { foodById } from "@/data/foods";
 
 export const MEALS = ["desayuno", "almuerzo", "once", "cena"] as const;
 export type Meal = (typeof MEALS)[number];
@@ -188,7 +188,8 @@ function loadDiary(): Diary {
   return seedDiary();
 }
 
-export function DiaryProvider({ children }: { children: ReactNode }) {
+// ✅ FIX S6759: Props de solo lectura
+export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [diary, setDiary] = useState<Diary>(() => loadDiary());
   const [goals, setGoals] = useState<Goals>(() => loadJSON(STORAGE_KEY + "-goals", DEFAULT_GOALS));
   const [favorites, setFavorites] = useState<string[]>(() =>
@@ -208,7 +209,6 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [favorites, savedMeals, posts]);
-
 
   useEffect(() => {
     try {
@@ -285,7 +285,6 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
     [diary, goals, favorites, savedMeals, posts],
   );
 
-
   return <DiaryContext.Provider value={value}>{children}</DiaryContext.Provider>;
 }
 
@@ -295,4 +294,5 @@ export function useDiary(): DiaryContextValue {
   return ctx;
 }
 
-export { FOODS };
+// ✅ FIX S7763: Re-exportación directa
+export { FOODS } from "@/data/foods";

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Target, Pencil, Check, AlertCircle, TrendingUp, CheckCircle2, Utensils, X, BookOpen } from "lucide-react";
 import { dateKeyOffset, todayKey, totalsFor, useDiary, type Goals } from "@/lib/diary-store";
 
@@ -33,29 +33,24 @@ const MAX_GOAL = 10000;
 type DraftGoals = Record<keyof Goals, string>;
 type GoalErrors = Partial<Record<keyof Goals, string>>;
 
-/** Redondea a 1 decimal para evitar ruido de punto flotante (p. ej. 8.5 - 8 = 0.5). */
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-/**
- * Compara lo consumido con la meta usando el MISMO valor redondeado que ve el usuario.
- * Así "17 / 17 g" se considera meta alcanzada y no un exceso de 0 g.
- */
 function compareToGoal(value: number, goal: number) {
   const shown = Math.round(value);
   const hasGoal = goal > 0;
-  const diff = hasGoal ? round1(shown - goal) : 0; // > 0: exceso, < 0: falta
+  const diff = hasGoal ? round1(shown - goal) : 0;
   return {
     shown,
     hasGoal,
     pct: hasGoal ? Math.round((shown / goal) * 100) : 0,
     over: hasGoal && diff > 0,
     met: hasGoal && diff === 0,
-    excess: diff > 0 ? diff : 0,
-    remaining: diff < 0 ? Math.abs(diff) : 0,
+    // ✅ FIX S7766: Uso de Math.max para simplificar ternarios
+    excess: Math.max(0, diff),
+    remaining: Math.max(0, -diff),
   };
 }
 
-/** Valida el borrador de metas. Devuelve los errores por campo y, si todo es válido, las metas numéricas. */
 function validateGoals(draft: DraftGoals): { errors: GoalErrors; goals: Goals | null } {
   const errors: GoalErrors = {};
   const parsed = {} as Goals;
@@ -90,6 +85,7 @@ function toDraft(goals: Goals): DraftGoals {
   };
 }
 
+// ✅ FIX S6759: Props de solo lectura
 function MacroBar({
   label,
   unit,
@@ -97,15 +93,41 @@ function MacroBar({
   value,
   goal,
   featured = false,
-}: {
+}: Readonly<{
   label: string;
   unit: string;
   color: string;
   value: number;
   goal: number;
   featured?: boolean;
-}) {
+}>) {
   const { shown, hasGoal, pct, over, met, excess, remaining } = compareToGoal(value, goal);
+
+  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
+  let statusNode;
+  if (!hasGoal) {
+    statusNode = <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">Define una meta para ver el avance</p>;
+  } else if (over) {
+    statusNode = (
+      <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-destructive">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+        Superaste tu meta de {label.toLowerCase()} por {excess} {unit} ({pct}%)
+      </p>
+    );
+  } else if (met) {
+    statusNode = (
+      <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-primary">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+        Meta alcanzada (100%)
+      </p>
+    );
+  } else {
+    statusNode = (
+      <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">
+        {pct}% de la meta · te faltan {remaining} {unit}
+      </p>
+    );
+  }
 
   return (
     <div className={`rounded-2xl border border-border bg-card p-4 ${featured ? "sm:col-span-2 sm:p-5" : ""}`}>
@@ -122,29 +144,13 @@ function MacroBar({
           style={{ width: `${Math.min(100, pct)}%` }}
         />
       </div>
-      {!hasGoal ? (
-        <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">Define una meta para ver el avance</p>
-      ) : over ? (
-        <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-destructive">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          Superaste tu meta de {label.toLowerCase()} por {excess} {unit} ({pct}%)
-        </p>
-      ) : met ? (
-        <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-primary">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-          Meta alcanzada (100%)
-        </p>
-      ) : (
-        <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">
-          {pct}% de la meta · te faltan {remaining} {unit}
-        </p>
-      )}
+      {statusNode}
     </div>
   );
 }
 
-/** Reparto de las calorías del día entre proteínas, carbohidratos y grasas (4, 4 y 9 kcal por gramo). */
-function MacroBalance({ protein, carbs, fat }: { protein: number; carbs: number; fat: number }) {
+// ✅ FIX S6759: Props de solo lectura
+function MacroBalance({ protein, carbs, fat }: Readonly<{ protein: number; carbs: number; fat: number }>) {
   const kp = protein * 4;
   const kc = carbs * 4;
   const kf = fat * 9;
@@ -186,6 +192,15 @@ function ProgresoPage() {
   const [draft, setDraft] = useState<DraftGoals>(toDraft(goals));
   const [errors, setErrors] = useState<GoalErrors>({});
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEditing(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editing]);
 
   const todayTotals = totalsFor(getDay(todayKey()));
   const hasToday = todayTotals.kcal > 0 || todayTotals.protein > 0 || todayTotals.carbs > 0 || todayTotals.fat > 0;
@@ -233,18 +248,47 @@ function ProgresoPage() {
     }
   };
 
+  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
+  let subtitle = "Compara lo que consumes cada día con tus metas.";
+  if (hasToday) {
+    if (goals.kcal > 0) {
+      subtitle = `Hoy llevas ${kcalToday} de ${goals.kcal} kcal.`;
+    } else {
+      subtitle = `Hoy llevas ${kcalToday} kcal.`;
+    }
+  }
+
+  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
+  let daysHelpText = null;
+  if (daysWithData.length > 0) {
+    daysHelpText = <p className="mt-2 text-center text-[11px] text-muted-foreground">Toca un día para ver su detalle.</p>;
+  }
+
+  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
+  let selectedDayContent = <p className="mt-2 text-sm text-muted-foreground">No registraste comidas este día.</p>;
+  if (selected && selected.totals.kcal > 0) {
+    selectedDayContent = (
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {MACRO_META.map((m) => (
+          <MacroBar
+            key={m.key}
+            label={m.label}
+            unit={m.unit}
+            color={m.color}
+            value={selected.totals[m.key]}
+            goal={goals[m.key]}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 pt-4 lg:px-0 lg:pt-0">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-extrabold tracking-tight lg:text-2xl">Tu progreso</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {hasToday
-              ? goals.kcal > 0
-                ? `Hoy llevas ${kcalToday} de ${goals.kcal} kcal.`
-                : `Hoy llevas ${kcalToday} kcal.`
-              : "Compara lo que consumes cada día con tus metas."}
-          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
         <button
           onClick={openEditor}
@@ -380,22 +424,7 @@ function ProgresoPage() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          {selected.totals.kcal > 0 ? (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {MACRO_META.map((m) => (
-                <MacroBar
-                  key={m.key}
-                  label={m.label}
-                  unit={m.unit}
-                  color={m.color}
-                  value={selected.totals[m.key]}
-                  goal={goals[m.key]}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">No registraste comidas este día.</p>
-          )}
+          {selectedDayContent}
           {selected.totals.kcal > 0 && (
             <Link
               to="/diario"
@@ -407,22 +436,21 @@ function ProgresoPage() {
           )}
         </div>
       ) : (
-        daysWithData.length > 0 && (
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">Toca un día para ver su detalle.</p>
-        )
+        daysHelpText
       )}
 
-      {/* Editor de metas */}
+      {/* ✅ FIX S6819, S6848, S1082: Modal nativo con <dialog> */}
       {editing && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full w-full max-w-none items-end justify-center bg-black/40 p-0 sm:items-center"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setEditing(false);
           }}
         >
           <form
             noValidate
-            className="w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5"
+            className="relative w-full max-w-md rounded-t-3xl bg-card p-5 pb-8 sm:rounded-3xl sm:pb-5"
             onSubmit={(e) => {
               e.preventDefault();
               saveGoals();
@@ -473,7 +501,7 @@ function ProgresoPage() {
               </button>
             </div>
           </form>
-        </div>
+        </dialog>
       )}
     </div>
   );
