@@ -8,7 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Leaf, Search, BookOpen, TrendingUp, Users } from "lucide-react";
+import { Leaf, Home, Search, BookOpen, TrendingUp, Users } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { DiaryProvider } from "@/lib/diary-store";
 
@@ -126,7 +126,8 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 const NAV_ITEMS = [
-  { to: "/", label: "Registrar alimento", icon: Search },
+  { to: "/", label: "Inicio", icon: Home },
+  { to: "/buscar", label: "Buscar", icon: Search },
   { to: "/diario", label: "Diario", icon: BookOpen },
   { to: "/progreso", label: "Progreso", icon: TrendingUp },
   { to: "/comunidad", label: "Comunidad", icon: Users },
@@ -135,7 +136,7 @@ const NAV_ITEMS = [
 function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4">
+      <div className="mx-auto grid max-w-md grid-cols-5">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}

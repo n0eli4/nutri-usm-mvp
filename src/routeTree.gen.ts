@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as ComunidadRouteImport } from './routes/comunidad'
 import { Route as DiarioRouteImport } from './routes/diario'
 import { Route as ProgresoRouteImport } from './routes/progreso'
@@ -17,6 +18,11 @@ import { Route as ProgresoRouteImport } from './routes/progreso'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuscarRoute = BuscarRouteImport.update({
+  id: '/buscar',
+  path: '/buscar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComunidadRoute = ComunidadRouteImport.update({
@@ -37,12 +43,14 @@ const ProgresoRoute = ProgresoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/buscar': typeof BuscarRoute
   '/comunidad': typeof ComunidadRoute
   '/diario': typeof DiarioRoute
   '/progreso': typeof ProgresoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/buscar': typeof BuscarRoute
   '/comunidad': typeof ComunidadRoute
   '/diario': typeof DiarioRoute
   '/progreso': typeof ProgresoRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/buscar': typeof BuscarRoute
   '/comunidad': typeof ComunidadRoute
   '/diario': typeof DiarioRoute
   '/progreso': typeof ProgresoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/comunidad' | '/diario' | '/progreso'
+  fullPaths: '/' | '/buscar' | '/comunidad' | '/diario' | '/progreso'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/comunidad' | '/diario' | '/progreso'
-  id: '__root__' | '/' | '/comunidad' | '/diario' | '/progreso'
+  to: '/' | '/buscar' | '/comunidad' | '/diario' | '/progreso'
+  id: '__root__' | '/' | '/buscar' | '/comunidad' | '/diario' | '/progreso'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BuscarRoute: typeof BuscarRoute
   ComunidadRoute: typeof ComunidadRoute
   DiarioRoute: typeof DiarioRoute
   ProgresoRoute: typeof ProgresoRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buscar': {
+      id: '/buscar'
+      path: '/buscar'
+      fullPath: '/buscar'
+      preLoaderRoute: typeof BuscarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comunidad': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BuscarRoute: BuscarRoute,
   ComunidadRoute: ComunidadRoute,
   DiarioRoute: DiarioRoute,
   ProgresoRoute: ProgresoRoute,

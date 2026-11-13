@@ -8,7 +8,7 @@ import {
 } from "react";
 import { foodById } from "@/data/foods";
 
-export const MEALS = ["desayuno", "almuerzo", "once", "cena"] as const;
+export const MEALS = ["desayuno", "almuerzo", "once", "cena", "snack"] as const;
 export type Meal = (typeof MEALS)[number];
 
 export const MEAL_LABELS: Record<Meal, string> = {
@@ -16,6 +16,7 @@ export const MEAL_LABELS: Record<Meal, string> = {
   almuerzo: "Almuerzo",
   once: "Once",
   cena: "Cena",
+  snack: "Snack",
 };
 
 export interface DiaryEntry {
@@ -56,7 +57,12 @@ export function dateKeyOffset(daysAgo: number): string {
 }
 
 function emptyDay(): DayMeals {
-  return { desayuno: [], almuerzo: [], once: [], cena: [] };
+  return { desayuno: [], almuerzo: [], once: [], cena: [], snack: [] };
+}
+
+/** Días guardados antes de existir "snack" no traen esa comida: se completa vacía. */
+function dayOf(stored?: Partial<DayMeals>): DayMeals {
+  return { ...emptyDay(), ...stored };
 }
 
 let entrySeq = 0;
@@ -74,12 +80,14 @@ function seedDiary(): Diary {
       almuerzo: [makeEntry("pollo", 1), makeEntry("arroz", 1), makeEntry("tomate", 1), makeEntry("aceite-oliva", 1)],
       once: [makeEntry("marraqueta", 1), makeEntry("palta", 1)],
       cena: [makeEntry("lentejas", 1), makeEntry("pan-integral", 1)],
+      snack: [],
     },
     [d2]: {
       desayuno: [makeEntry("marraqueta", 1), makeEntry("huevo", 2), makeEntry("naranja", 1)],
       almuerzo: [makeEntry("porotos", 1), makeEntry("lechuga", 1)],
       once: [makeEntry("yogur", 1), makeEntry("barra-cereal", 1)],
       cena: [makeEntry("salmon", 1), makeEntry("papa", 1), makeEntry("tomate", 1)],
+      snack: [],
     },
   };
 }
@@ -169,6 +177,7 @@ interface DiaryContextValue {
   savedMeals: SavedMeal[];
   saveMeal: (name: string, items: { foodId: string; servings: number }[]) => void;
   removeSavedMeal: (id: string) => void;
+  updateSavedMeal: (id: string, name: string, items: { foodId: string; servings: number }[]) => void;
   posts: UserPost[];
   addPost: (post: Omit<UserPost, "id" | "timeAgo">) => void;
 }
@@ -239,10 +248,10 @@ export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
     () => ({
       diary,
       goals,
-      getDay: (dateKey) => diary[dateKey] ?? emptyDay(),
+      getDay: (dateKey) => dayOf(diary[dateKey]),
       addEntries: (meal, items, dateKey = todayKey()) =>
         setDiary((prev) => {
-          const day = prev[dateKey] ?? emptyDay();
+          const day = dayOf(prev[dateKey]);
           return {
             ...prev,
             [dateKey]: {
@@ -253,7 +262,7 @@ export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
         }),
       removeEntry: (dateKey, meal, entryId) =>
         setDiary((prev) => {
-          const day = prev[dateKey] ?? emptyDay();
+          const day = dayOf(prev[dateKey]);
           return {
             ...prev,
             [dateKey]: { ...day, [meal]: day[meal].filter((e) => e.id !== entryId) },
@@ -261,7 +270,7 @@ export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
         }),
       updateEntry: (dateKey, meal, entryId, servings) =>
         setDiary((prev) => {
-          const day = prev[dateKey] ?? emptyDay();
+          const day = dayOf(prev[dateKey]);
           return {
             ...prev,
             [dateKey]: {
@@ -284,6 +293,8 @@ export function DiaryProvider({ children }: Readonly<{ children: ReactNode }>) {
           ...prev,
         ]),
       removeSavedMeal: (id) => setSavedMeals((prev) => prev.filter((m) => m.id !== id)),
+      updateSavedMeal: (id, name, items) =>
+        setSavedMeals((prev) => prev.map((m) => (m.id === id ? { ...m, name, items } : m))),
       posts,
       addPost: (post) =>
         setPosts((prev) => [
