@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Target, Pencil, Check, AlertCircle, TrendingUp, CheckCircle2, Utensils, X, BookOpen } from "lucide-react";
 import { dateKeyOffset, todayKey, totalsFor, useDiary, type Goals } from "@/lib/diary-store";
+import { MACRO_META, MacroBar, compareToGoal } from "@/components/macro-bar";
 
 export const Route = createFileRoute("/progreso")({
   head: () => ({
@@ -21,35 +22,10 @@ export const Route = createFileRoute("/progreso")({
   component: ProgresoPage,
 });
 
-const MACRO_META: { key: keyof Goals; label: string; unit: string; color: string }[] = [
-  { key: "kcal", label: "Calorías", unit: "kcal", color: "bg-primary" },
-  { key: "protein", label: "Proteínas", unit: "g", color: "bg-chart-2" },
-  { key: "carbs", label: "Carbohidratos", unit: "g", color: "bg-chart-4" },
-  { key: "fat", label: "Grasas", unit: "g", color: "bg-chart-1" },
-];
-
 const MAX_GOAL = 10000;
 
 type DraftGoals = Record<keyof Goals, string>;
 type GoalErrors = Partial<Record<keyof Goals, string>>;
-
-const round1 = (n: number) => Math.round(n * 10) / 10;
-
-function compareToGoal(value: number, goal: number) {
-  const shown = Math.round(value);
-  const hasGoal = goal > 0;
-  const diff = hasGoal ? round1(shown - goal) : 0;
-  return {
-    shown,
-    hasGoal,
-    pct: hasGoal ? Math.round((shown / goal) * 100) : 0,
-    over: hasGoal && diff > 0,
-    met: hasGoal && diff === 0,
-    // ✅ FIX S7766: Uso de Math.max para simplificar ternarios
-    excess: Math.max(0, diff),
-    remaining: Math.max(0, -diff),
-  };
-}
 
 function validateGoals(draft: DraftGoals): { errors: GoalErrors; goals: Goals | null } {
   const errors: GoalErrors = {};
@@ -83,70 +59,6 @@ function toDraft(goals: Goals): DraftGoals {
     carbs: String(goals.carbs),
     fat: String(goals.fat),
   };
-}
-
-// ✅ FIX S6759: Props de solo lectura
-function MacroBar({
-  label,
-  unit,
-  color,
-  value,
-  goal,
-  featured = false,
-}: Readonly<{
-  label: string;
-  unit: string;
-  color: string;
-  value: number;
-  goal: number;
-  featured?: boolean;
-}>) {
-  const { shown, hasGoal, pct, over, met, excess, remaining } = compareToGoal(value, goal);
-
-  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
-  let statusNode;
-  if (!hasGoal) {
-    statusNode = <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">Define una meta para ver el avance</p>;
-  } else if (over) {
-    statusNode = (
-      <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-destructive">
-        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        Superaste tu meta de {label.toLowerCase()} por {excess} {unit} ({pct}%)
-      </p>
-    );
-  } else if (met) {
-    statusNode = (
-      <p className="mt-1.5 flex items-center justify-end gap-1 text-right text-xs font-bold text-primary">
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-        Meta alcanzada (100%)
-      </p>
-    );
-  } else {
-    statusNode = (
-      <p className="mt-1.5 text-right text-xs font-bold text-muted-foreground">
-        {pct}% de la meta · te faltan {remaining} {unit}
-      </p>
-    );
-  }
-
-  return (
-    <div className={`rounded-2xl border border-border bg-card p-4 ${featured ? "sm:col-span-2 sm:p-5" : ""}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <p className={`font-extrabold ${featured ? "text-base" : "text-sm"}`}>{label}</p>
-        <p className="text-xs text-muted-foreground">
-          <span className={`font-extrabold text-foreground ${featured ? "text-2xl" : "text-sm"}`}>{shown}</span> /{" "}
-          {hasGoal ? `${goal} ${unit}` : "sin meta"}
-        </p>
-      </div>
-      <div className={`mt-2 overflow-hidden rounded-full bg-muted ${featured ? "h-4" : "h-3"}`}>
-        <div
-          className={`h-full rounded-full transition-all ${over ? "bg-destructive" : color}`}
-          style={{ width: `${Math.min(100, pct)}%` }}
-        />
-      </div>
-      {statusNode}
-    </div>
-  );
 }
 
 // ✅ FIX S6759: Props de solo lectura
@@ -231,7 +143,12 @@ function ProgresoPage() {
     return pct >= 90 && pct <= 110;
   }).length;
 
+
   const kcalToday = Math.round(todayTotals.kcal);
+  let subtitle = "Compara lo que consumes cada día con tus metas.";
+  if (hasToday) {
+    subtitle = goals.kcal > 0 ? `Hoy llevas ${kcalToday} de ${goals.kcal} kcal.` : `Hoy llevas ${kcalToday} kcal.`;
+  }
 
   const openEditor = () => {
     setDraft(toDraft(goals));
@@ -247,16 +164,6 @@ function ProgresoPage() {
       setEditing(false);
     }
   };
-
-  // ✅ FIX S3358: Extraer ternario anidado a variable independiente
-  let subtitle = "Compara lo que consumes cada día con tus metas.";
-  if (hasToday) {
-    if (goals.kcal > 0) {
-      subtitle = `Hoy llevas ${kcalToday} de ${goals.kcal} kcal.`;
-    } else {
-      subtitle = `Hoy llevas ${kcalToday} kcal.`;
-    }
-  }
 
   // ✅ FIX S3358: Extraer ternario anidado a variable independiente
   let daysHelpText = null;
@@ -285,52 +192,54 @@ function ProgresoPage() {
 
   return (
     <div className="px-4 pt-4 lg:px-0 lg:pt-0">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-extrabold tracking-tight lg:text-2xl">Tu progreso</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-        <button
-          onClick={openEditor}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-foreground"
-        >
-          <Pencil className="h-3.5 w-3.5" /> Editar metas
-        </button>
-      </div>
-
-      {!hasToday && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">
-            Aún no registras comidas hoy. Añade alimentos para ver tu avance aquí.
-          </p>
-          <Link
-            to="/"
-            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+      <section className="rounded-3xl bg-linear-to-br from-accent to-secondary p-4 lg:p-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-extrabold tracking-tight lg:text-2xl">Tu progreso</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+          <button
+            onClick={openEditor}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-foreground"
           >
-            <Utensils className="h-3.5 w-3.5" /> Registrar comida
+            <Pencil className="h-3.5 w-3.5" /> Editar metas
+          </button>
+        </div>
+
+        {!hasToday && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-4">
+            <p className="text-sm text-muted-foreground">
+              Aún no registras comidas hoy. Añade alimentos para ver tu avance aquí.
+            </p>
+            <Link
+              to="/buscar"
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+            >
+              <Utensils className="h-3.5 w-3.5" /> Registrar comida
+            </Link>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-extrabold">Hoy</h2>
+          <Link to="/diario" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+            <BookOpen className="h-3.5 w-3.5" /> Ver diario
           </Link>
         </div>
-      )}
-
-      <div className="mt-5 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-extrabold">Hoy</h2>
-        <Link to="/diario" className="flex items-center gap-1 text-xs font-bold text-primary hover:underline">
-          <BookOpen className="h-3.5 w-3.5" /> Ver diario
-        </Link>
-      </div>
-      <div className="mt-2 grid gap-3 sm:grid-cols-2">
-        {MACRO_META.map((m) => (
-          <MacroBar
-            key={m.key}
-            label={m.label}
-            unit={m.unit}
-            color={m.color}
-            value={todayTotals[m.key]}
-            goal={goals[m.key]}
-            featured={m.key === "kcal"}
-          />
-        ))}
-      </div>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          {MACRO_META.map((m) => (
+            <MacroBar
+              key={m.key}
+              label={m.label}
+              unit={m.unit}
+              color={m.color}
+              value={todayTotals[m.key]}
+              goal={goals[m.key]}
+              featured={m.key === "kcal"}
+            />
+          ))}
+        </div>
+      </section>
 
       {hasToday && (
         <>
