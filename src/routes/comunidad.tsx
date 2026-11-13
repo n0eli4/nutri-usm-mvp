@@ -32,6 +32,15 @@ const KIND_LABEL: Record<CommunityPost["kind"], string> = {
   receta: "Receta",
 };
 
+type KindFilter = "recientes" | CommunityPost["kind"];
+
+const KIND_FILTERS: { id: KindFilter; label: string }[] = [
+  { id: "recientes", label: "Recientes" },
+  { id: "tip", label: "Tips" },
+  { id: "registro", label: "Registros" },
+  { id: "receta", label: "Recetas" },
+];
+
 function PostCard({ post }: { post: CommunityPost }) {
   return (
     <article className="rounded-2xl border border-border bg-card p-4">
@@ -68,6 +77,7 @@ function ComunidadPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [text, setText] = useState("");
   const [attachId, setAttachId] = useState<string>("");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("recientes");
 
   const day = getDay(todayKey());
 
@@ -123,13 +133,17 @@ function ComunidadPage() {
     setText("");
     setAttachId("");
     setComposerOpen(false);
+    // Para que la persona vea su publicación sin importar el filtro activo.
+    setKindFilter("recientes");
   };
 
   const allPosts = [...posts, ...COMMUNITY_POSTS];
+  const visiblePosts =
+    kindFilter === "recientes" ? allPosts : allPosts.filter((p) => p.kind === kindFilter);
 
   return (
     <div className="px-4 pt-4 lg:px-0 lg:pt-0">
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-3xl bg-linear-to-br from-accent to-secondary p-4 lg:p-6">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-extrabold tracking-tight lg:text-2xl">Comunidad</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -144,8 +158,29 @@ function ComunidadPage() {
         </button>
       </header>
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        {KIND_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setKindFilter(f.id)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+              kindFilter === f.id
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-card text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-        {allPosts.map((p) => (
+        {visiblePosts.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground lg:col-span-2 xl:col-span-3">
+            Todavía no hay publicaciones con esta etiqueta.
+          </p>
+        )}
+        {visiblePosts.map((p) => (
           <PostCard key={p.id} post={p} />
         ))}
       </div>
