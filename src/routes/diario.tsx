@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Pencil,
   Flame,
   Bookmark,
   Plus,
@@ -18,6 +19,10 @@ import {
 import { toast } from "sonner";
 import { foodById } from "@/data/foods";
 import { FoodIcon } from "@/components/food-icon";
+import { SectionChips } from "@/components/section-chips";
+import { MealBadge, mealSpan } from "@/components/meal-style";
+import { EditSavedMealDialog } from "@/components/edit-saved-meal-dialog";
+import { SaveMealDialog, suggestMealName } from "@/components/save-meal-dialog";
 import {
   MEALS,
   MEAL_LABELS,
@@ -36,13 +41,13 @@ export const Route = createFileRoute("/diario")({
       {
         name: "description",
         content:
-          "Revisa desayuno, almuerzo, once y cena, con totales del día y tus comidas guardadas para repetir en un clic.",
+          "Revisa desayuno, almuerzo, once, cena y snack, con totales del día y tus comidas guardadas para repetir en un clic.",
       },
       { property: "og:title", content: "Diario del día — NUTRIUSM" },
       {
         property: "og:description",
         content:
-          "Revisa desayuno, almuerzo, once y cena, con totales del día y tus comidas guardadas para repetir en un clic.",
+          "Revisa desayuno, almuerzo, once, cena y snack, con totales del día y tus comidas guardadas para repetir en un clic.",
       },
     ],
   }),
@@ -80,8 +85,10 @@ function DiarioPage() {
     goals,
     savedMeals,
     removeSavedMeal,
+    updateSavedMeal,
     addEntries,
     favorites,
+    toggleFavorite,
     saveMeal,
   } = useDiary();
   const { date: initialDate } = Route.useSearch();
@@ -92,6 +99,23 @@ function DiarioPage() {
     return Math.max(0, Math.round((today.getTime() - picked.getTime()) / 86400000));
   });
   const [pending, setPending] = useState<SavedMeal | null>(null);
+  const [renaming, setRenaming] = useState<SavedMeal | null>(null);
+  const [saving, setSaving] = useState<{
+    meal: Meal;
+    entries: { foodId: string; servings: number }[];
+  } | null>(null);
+
+  const confirmSave = (name: string) => {
+    if (!saving) return;
+    saveMeal(
+      name,
+      saving.entries.map((e) => ({ foodId: e.foodId, servings: e.servings })),
+    );
+    toast.success(`“${name}” guardada para repetirla después`, {
+      description: `${saving.entries.length} ingrediente${saving.entries.length > 1 ? "s" : ""}`,
+    });
+    setSaving(null);
+  };
   const dateKey = daysAgo === 0 ? todayKey() : dateKeyOffset(daysAgo);
   const day = getDay(dateKey);
   const totals = totalsFor(day);
@@ -122,8 +146,21 @@ function DiarioPage() {
 
   return (
     <div className="px-4 pt-4 lg:px-0 lg:pt-0">
+      <SectionChips
+        sections={[
+          { id: "resumen", label: "Resumen" },
+          { id: "comidas", label: "Comidas" },
+          { id: "comidas-guardadas", label: "Guardadas" },
+          { id: "favoritos", label: "Favoritos" },
+        ]}
+      />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-8">
         <div className="min-w-0">
+          <section id="resumen" className="scroll-mt-28 rounded-3xl bg-linear-to-br from-accent to-secondary p-4 lg:p-6">
+          <h1 className="text-xl font-extrabold tracking-tight lg:text-2xl">Tu diario</h1>
+          <p className="mb-3 mt-0.5 text-sm text-muted-foreground">
+            Revisa y corrige lo que comiste cada día.
+          </p>
           {/* Selector de día */}
           <div className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card p-2">
             <button
@@ -201,6 +238,7 @@ function DiarioPage() {
               </div>
             </div>
           </div>
+          </section>
 
           {dayIsEmpty && (
             <div className="mt-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
@@ -209,11 +247,11 @@ function DiarioPage() {
               </div>
               <h2 className="mt-3 text-sm font-extrabold">Aún no hay registros este día</h2>
               <p className="mx-auto mt-1 max-w-xs text-xs text-muted-foreground">
-                Cuando anotes tu desayuno, almuerzo, once o cena, verás aquí el desglose con
+                Cuando anotes tu desayuno, almuerzo, once, cena o snack, verás aquí el desglose con
                 calorías y macros de cada alimento.
               </p>
               <Link
-                to="/"
+                to="/buscar"
                 className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
               >
                 <Sparkles className="h-3.5 w-3.5" /> Registrar un alimento
@@ -222,7 +260,7 @@ function DiarioPage() {
           )}
 
           {/* Comidas */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div id="comidas" className="mt-4 scroll-mt-28 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {MEALS.map((meal) => {
               const entries = day[meal];
               const mealKcal = entries.reduce((sum, e) => {
@@ -230,9 +268,15 @@ function DiarioPage() {
                 return sum + (f ? f.kcal * e.servings : 0);
               }, 0);
               return (
-                <section key={meal} className="min-w-0 rounded-2xl border border-border bg-card p-4">
+                <section
+                  key={meal}
+                  className={`min-w-0 rounded-2xl border border-border bg-card p-4 ${meal === "snack" ? "sm:col-span-2 lg:col-span-1 xl:col-span-2" : ""}`}
+                >
                   <div className="flex min-w-0 items-center justify-between gap-2">
-                    <h2 className="truncate text-sm font-extrabold">{MEAL_LABELS[meal]}</h2>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <MealBadge meal={meal} />
+                      <h2 className="truncate text-sm font-extrabold">{MEAL_LABELS[meal]}</h2>
+                    </div>
                     <span className="shrink-0 text-xs font-bold text-muted-foreground">
                       {Math.round(mealKcal)} kcal
                     </span>
@@ -291,7 +335,7 @@ function DiarioPage() {
                               </button>
                             </div>
                             <div className="mt-2 flex min-w-0 items-center justify-between gap-2">
-                              <span className="min-w-0 truncate text-[11px] font-semibold text-muted-foreground">
+                              <span className="min-w-0 text-[10px] font-semibold leading-tight text-muted-foreground">
                                 Porciones · {f.portion}
                               </span>
                               <div className="flex shrink-0 items-center gap-1">
@@ -341,32 +385,16 @@ function DiarioPage() {
                     </ul>
                   )}
                   <Link
-                    to="/"
+                    to="/buscar"
                     search={{ meal, date: dateKey }}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-accent py-2 text-xs font-bold text-accent-foreground hover:bg-accent/80"
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-primary/40 bg-accent px-4 py-2.5 text-center text-xs font-bold leading-tight text-accent-foreground hover:bg-accent/80"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Agregar alimento a {MEAL_LABELS[meal].toLowerCase()}
+                    <Plus className="h-3.5 w-3.5 shrink-0" />
+                    <span>Agregar alimento a {MEAL_LABELS[meal].toLowerCase()}</span>
                   </Link>
                   {entries.length > 0 && (
                     <button
-                      onClick={() => {
-                        const foodNames = entries
-                          .map((e) => foodById(e.foodId)?.name)
-                          .filter((name): name is string => Boolean(name));
-                        const baseName = foodNames.slice(0, 2).join(" + ");
-                        const mealName =
-                          foodNames.length > 2
-                            ? `${baseName} +${foodNames.length - 2}`
-                            : baseName || MEAL_LABELS[meal];
-
-                        saveMeal(
-                          mealName,
-                          entries.map((e) => ({ foodId: e.foodId, servings: e.servings })),
-                        );
-                        toast.success("Comida guardada para repetirla después", {
-                          description: `“${mealName}” · ${entries.length} ingrediente${entries.length > 1 ? "s" : ""}`,
-                        });
-                      }}
+                      onClick={() => setSaving({ meal, entries })}
                       className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-background py-2 text-xs font-bold text-foreground hover:border-primary/40"
                     >
                       <Bookmark className="h-3.5 w-3.5" /> Guardar esta comida
@@ -379,7 +407,7 @@ function DiarioPage() {
         </div>
 
         {/* Guardados */}
-        <aside className="min-w-0">
+        <aside id="comidas-guardadas" className="min-w-0 scroll-mt-28">
           <h2 className="flex min-w-0 items-center gap-2 text-sm font-extrabold">
             <Bookmark className="h-4 w-4 shrink-0 text-primary" /> Comidas guardadas
           </h2>
@@ -412,13 +440,30 @@ function DiarioPage() {
                       {Math.round(savedMealKcal(m))} kcal
                     </p>
                   </div>
-                  <button
-                    onClick={() => removeSavedMeal(m.id)}
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label={`Eliminar ${m.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => setRenaming(m)}
+                      className="text-muted-foreground hover:text-primary"
+                      aria-label={`Editar ${m.name}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        removeSavedMeal(m.id);
+                        toast(`“${m.name}” eliminada de tus guardadas`, {
+                          action: {
+                            label: "Deshacer",
+                            onClick: () => saveMeal(m.name, m.items),
+                          },
+                        });
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label={`Eliminar ${m.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <button
                   onClick={() => setPending(m)}
@@ -430,7 +475,7 @@ function DiarioPage() {
             ))}
           </div>
 
-          <h2 className="mt-6 flex min-w-0 items-center gap-2 text-sm font-extrabold">
+          <h2 id="favoritos" className="mt-6 flex min-w-0 scroll-mt-28 items-center gap-2 text-sm font-extrabold">
             <Star className="h-4 w-4 shrink-0 text-primary" /> Alimentos favoritos
           </h2>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -445,9 +490,21 @@ function DiarioPage() {
               return (
                 <span
                   key={id}
-                  className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground"
+                  className="flex items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1 text-xs font-bold text-secondary-foreground"
                 >
                   {f.name} · {f.kcal} kcal
+                  <button
+                    onClick={() => {
+                      toggleFavorite(id);
+                      toast(`${f.name} quitado de favoritos`, {
+                        action: { label: "Deshacer", onClick: () => toggleFavorite(id) },
+                      });
+                    }}
+                    className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-card hover:text-destructive"
+                    aria-label={`Quitar ${f.name} de favoritos`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </span>
               );
             })}
@@ -456,6 +513,32 @@ function DiarioPage() {
       </div>
 
       {/* ✅ FIX S6819, S6848, S1082: Modal nativo con <dialog> */}
+      {renaming && (
+        <EditSavedMealDialog
+          meal={renaming}
+          onSave={(name, items) => {
+            updateSavedMeal(renaming.id, name, items);
+            toast.success(`“${name}” actualizada`);
+            setRenaming(null);
+          }}
+          onClose={() => setRenaming(null)}
+        />
+      )}
+
+      {saving && (
+        <SaveMealDialog
+          suggestedName={suggestMealName(
+            saving.entries
+              .map((e) => foodById(e.foodId)?.name)
+              .filter((n): n is string => Boolean(n)),
+            MEAL_LABELS[saving.meal],
+          )}
+          summary={`${MEAL_LABELS[saving.meal]} · ${saving.entries.length} alimento${saving.entries.length > 1 ? "s" : ""}`}
+          onSave={confirmSave}
+          onClose={() => setSaving(null)}
+        />
+      )}
+
       {pending && (
         <dialog
           open
@@ -482,8 +565,9 @@ function DiarioPage() {
                 <button
                   key={meal}
                   onClick={() => quickAdd(meal)}
-                  className="rounded-2xl border border-border bg-secondary py-4 text-sm font-bold text-secondary-foreground transition-colors hover:border-primary hover:bg-accent"
+                  className={`flex items-center justify-center gap-2 rounded-2xl border border-border bg-secondary py-4 text-sm font-bold text-secondary-foreground transition-colors hover:border-primary hover:bg-accent ${mealSpan(meal)}`}
                 >
+                  <MealBadge meal={meal} className="h-7 w-7 rounded-lg" />
                   {MEAL_LABELS[meal]}
                 </button>
               ))}
